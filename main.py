@@ -49,7 +49,6 @@ def keep_if_pattern(words: set[str], pattern: str="-"*5) -> set[str]:
 
 		if valid:
 			for i, l in pairs.items():
-				print(i, l)
 				valid &= w[i] == l
 
 		if valid:
@@ -66,7 +65,6 @@ def remove_if_pattern(words: set[str], pattern: str="-"*5):
 
 		if valid:
 			for i, l in pairs.items():
-				print(i, l)
 				valid &= w[i] == l
 
 		if not valid:
