@@ -63,11 +63,15 @@ def remove_if_pattern(words: set[str], pattern: str="-"*5):
 	for w in words:
 		valid: bool = len(w) == len(pattern)
 
+		writeWord: bool = True
+
 		if valid:
 			for i, l in pairs.items():
-				valid &= w[i] == l
+				if w[i] == l:
+					writeWord = False
+					break
 
-		if not valid:
+		if writeWord:
 			output.add(w)
 
 	return output
