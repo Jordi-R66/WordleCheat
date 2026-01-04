@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 import sys
+
 from os import system
+from time import time
 
 CLEAR_CMD: str = "cls" if sys.platform == "win32" else "clear"
 
 wordle_size: int = 5
 words: set[str] = None
+logger: Logger = None
 BANNED_LETTERS: str = set()
 CONTAINED_LETTERS: str = set()
 
@@ -95,10 +100,39 @@ def remove_if_letter_not_in(words: set[str]) -> set[str]:
 
 	return output
 
+class Logger:
+	def __init__(self):
+		self.fp = open(f"logs_wordle_{int(time())}.log", "w")
+
+	def close(self) -> None:
+		self.fp.close()
+		self.fp = None
+
+	def logAction(self, actionCode: int, arg: str, remainingWords: int) -> None:
+		if actionCode in Actions.ACTIONS:
+			self.fp.write(f"{actionCode}\t{arg}\t{remainingWords}\n")
+			self.fp.flush()
+
 class Actions:
+	RESET: int = 0
+	KEEP_PATTERN: int = 1
+	REMOVE_PATTERN: int = 2
+	BAN_LETTERS: int = 3
+	INCLUDE_LETTERS: int = 4
+	LIST_WORDS: int = 5
+	EXIT: int = 6
+
+	ACTIONS: list[int] = [RESET, KEEP_PATTERN, REMOVE_PATTERN, BAN_LETTERS, INCLUDE_LETTERS, LIST_WORDS, EXIT]
+
 	def reset() -> set[str]:
 		system(CLEAR_CMD)
-		global BANNED_LETTERS, CONTAINED_LETTERS, wordle_size, words
+		global BANNED_LETTERS, CONTAINED_LETTERS, wordle_size, words, logger
+
+		if logger == None:
+			logger = Logger()
+		else:
+			logger.close()
+			logger = Logger()
 
 		BANNED_LETTERS = set()
 		CONTAINED_LETTERS = set()
@@ -107,6 +141,7 @@ class Actions:
 
 		words = read_dict("words_alpha.txt")
 		words = filter_by_length(words, wordle_size, wordle_size)
+		logger.logAction(Actions.RESET, "RESET", len(words))
 
 	def keep_by_pattern() -> None:
 		global words
@@ -114,6 +149,7 @@ class Actions:
 		pattern: str = input("Enter the pattern: ").upper()
 
 		words = keep_if_pattern(words, pattern)
+		logger.logAction(Actions.KEEP_PATTERN, pattern, len(words))
 
 	def remove_by_pattern() -> None:
 		global words
@@ -121,6 +157,7 @@ class Actions:
 		pattern: str = input("Enter the pattern: ").upper()
 
 		words = remove_if_pattern(words, pattern)
+		logger.logAction(Actions.REMOVE_PATTERN, pattern, len(words))
 
 	def add_banned_letters() -> None:
 		global BANNED_LETTERS, words
@@ -131,6 +168,7 @@ class Actions:
 			BANNED_LETTERS.add(l)
 
 		words = remove_if_banned_letters(words)
+		logger.logAction(Actions.BAN_LETTERS, letters, len(words))
 
 	def add_contained_letters() -> None:
 		global CONTAINED_LETTERS, words
@@ -141,13 +179,25 @@ class Actions:
 			CONTAINED_LETTERS.add(l)
 
 		words = remove_if_letter_not_in(words)
+		logger.logAction(Actions.INCLUDE_LETTERS, letters, len(words))
 
 	def print_words() -> None:
 		print(*sorted(words))
+		logger.logAction(Actions.LIST_WORDS, "LIST WORDS", len(words))
 		input(" Press 'Enter' to go back to menu ")
+
+	def exit_program() -> None:
+		global logger
+
+		logger.logAction(Actions.EXIT, "END OF PROGRAM", len(words))
+		logger.close()
+		logger = None
+		sys.exit()
 
 	def actions_menu():
 		system(CLEAR_CMD)
+		global logger
+
 		lines: list[str] = [
 			"[0] Reset",
 			"[1] Keep by pattern",
@@ -160,32 +210,32 @@ class Actions:
 
 		print(*lines, sep="\n")
 		print(f"\n {len(words)} words remaining")
-		n: int = int(input("Pick a number: "))
+		actionCode: int = int(input("Pick a number: "))
 
-		match n:
-			case 0:
-				Actions.reset()
+		if actionCode in Actions.ACTIONS:
+			match actionCode:
+				case Actions.RESET:
+					Actions.reset()
 
-			case 1:
-				Actions.keep_by_pattern()
+				case Actions.KEEP_PATTERN:
+					Actions.keep_by_pattern()
 
-			case 2:
-				Actions.remove_by_pattern()
+				case Actions.REMOVE_PATTERN:
+					Actions.remove_by_pattern()
 
-			case 3:
-				Actions.add_banned_letters()
+				case Actions.BAN_LETTERS:
+					Actions.add_banned_letters()
 
-			case 4:
-				Actions.add_contained_letters()
+				case Actions.INCLUDE_LETTERS:
+					Actions.add_contained_letters()
 
-			case 5:
-				Actions.print_words()
+				case Actions.LIST_WORDS:
+					Actions.print_words()
 
-			case 6:
-				sys.exit()
+				case Actions.EXIT:
+					Actions.exit_program()
 
 		Actions.actions_menu()
-
 
 if __name__ == "__main__":
 	words: set[str] = None
